@@ -26,7 +26,7 @@ class ViewController: UIViewController {
 
     // Create the button
     let button = UIButton(type: .system)
-    button.setTitle("Present Modal", for: .normal)
+    button.setTitle("Present Modal and Snack Bar", for: .normal)
     button.addTarget(self, action: #selector(presentModal), for: .touchUpInside)
     button.translatesAutoresizingMaskIntoConstraints = false
 
@@ -41,54 +41,43 @@ class ViewController: UIViewController {
   }
 
   @objc func presentModal() {
-    let dummyVC = DummyViewController()
+    let dummyVC = DummyModalViewController()
     dummyVC.modalPresentationStyle = .fullScreen
 
-    addButtonToCustomWindow()
+    showSnackBar()
     present(dummyVC, animated: true, completion: nil)
   }
 
-  func addButtonToCustomWindow() {
+  func showSnackBar() {
     guard let windowScene = UIApplication.shared.connectedScenes.first as? UIWindowScene else {
       return
     }
 
-    customWindow = CustomWindow(windowScene: windowScene)
-    customWindow?.frame = UIScreen.main.bounds
-    customWindow?.isHidden = false
+    let window = CustomWindow(windowScene: windowScene)
+    window.isHidden = false
+    self.customWindow = window
 
-    let button = UIButton(type: .system)
-    button.setTitle("Print to Console", for: .normal)
-    button.addTarget(self, action: #selector(printToConsole), for: .touchUpInside)
-    button.backgroundColor = .black
-    button.setTitleColor(.white, for: .normal)
-    button.translatesAutoresizingMaskIntoConstraints = false
-
-    customWindow?.addSubview(button)
-
-    NSLayoutConstraint.activate([
-      button.centerXAnchor.constraint(equalTo: customWindow!.centerXAnchor),
-      button.centerYAnchor.constraint(equalTo: customWindow!.centerYAnchor, constant: 100),
-      button.widthAnchor.constraint(equalToConstant: 200),
-      button.heightAnchor.constraint(equalToConstant: 50)
-    ])
+    let vc = SnackBarViewController()
+    window.rootViewController = vc
+    vc.dismissButton.addTarget(self, action: #selector(onDismissSnackbar), for: .touchUpInside)
   }
 
-  @objc func printToConsole() {
-    print("Button on window tapped!")
+  @objc func onDismissSnackbar() {
+    self.customWindow?.isHidden = true
+    self.customWindow = nil
   }
 
 }
 
-class DummyViewController: UIViewController {
+class DummyModalViewController: UIViewController {
 
   override func viewDidLoad() {
     super.viewDidLoad()
-    view.backgroundColor = .green
+    view.backgroundColor = .darkGray
 
     // Create the dismiss button
     let dismissButton = UIButton(type: .system)
-    dismissButton.setTitle("Dismiss", for: .normal)
+    dismissButton.setTitle("Dismiss Modal", for: .normal)
     dismissButton.addTarget(self, action: #selector(dismissModal), for: .touchUpInside)
     dismissButton.translatesAutoresizingMaskIntoConstraints = false
 
@@ -106,7 +95,6 @@ class DummyViewController: UIViewController {
     dismiss(animated: true, completion: nil)
   }
 }
-
 
 class CustomWindow: UIWindow {
   override init(windowScene: UIWindowScene) {
@@ -126,4 +114,93 @@ class CustomWindow: UIWindow {
     }
     return hitView
   }
+}
+
+class SnackBarViewController: UIViewController {
+
+  private let messageLabel: UILabel = {
+    let label = UILabel()
+    label.textColor = .white
+    label.textAlignment = .center
+    label.numberOfLines = 0
+    return label
+  }()
+
+  let dismissButton: UIButton = {
+    let button = UIButton(type: .system)
+    return button
+  }()
+
+  private let containerView: UIView = {
+    let view = UIView()
+    view.layer.cornerRadius = 8
+    view.clipsToBounds = true
+    view.backgroundColor = .brown
+    return view
+  }()
+
+  override func loadView() {
+    view = IgnoreTouchView()
+  }
+
+  init() {
+    super.init(nibName: nil, bundle: nil)
+  }
+
+  required init?(coder: NSCoder) {
+    fatalError("init(coder:) has not been implemented")
+  }
+
+  override func viewDidLoad() {
+    super.viewDidLoad()
+
+    setupViews()
+    setupConstraints()
+  }
+
+  private func setupViews() {
+    messageLabel.text = "Snack Bar"
+    dismissButton.setTitle("Dismiss snack bar", for: .normal)
+    dismissButton.addTarget(self, action: #selector(dismissSnackBar), for: .touchUpInside)
+
+    containerView.addSubview(messageLabel)
+    containerView.addSubview(dismissButton)
+    view.addSubview(containerView)
+  }
+
+  private func setupConstraints() {
+    containerView.translatesAutoresizingMaskIntoConstraints = false
+    messageLabel.translatesAutoresizingMaskIntoConstraints = false
+    dismissButton.translatesAutoresizingMaskIntoConstraints = false
+
+    NSLayoutConstraint.activate([
+      containerView.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: 16),
+      containerView.trailingAnchor.constraint(equalTo: view.trailingAnchor, constant: -16),
+      containerView.bottomAnchor.constraint(equalTo: view.safeAreaLayoutGuide.bottomAnchor, constant: -16),
+
+      messageLabel.topAnchor.constraint(equalTo: containerView.topAnchor, constant: 16),
+      messageLabel.leadingAnchor.constraint(equalTo: containerView.leadingAnchor, constant: 16),
+      messageLabel.trailingAnchor.constraint(equalTo: containerView.trailingAnchor, constant: -16),
+
+      dismissButton.topAnchor.constraint(equalTo: messageLabel.bottomAnchor, constant: 8),
+      dismissButton.bottomAnchor.constraint(equalTo: containerView.bottomAnchor, constant: -16),
+      dismissButton.centerXAnchor.constraint(equalTo: containerView.centerXAnchor)
+    ])
+  }
+
+  @objc private func dismissSnackBar() {
+    dismiss(animated: true, completion: nil)
+  }
+}
+
+class IgnoreTouchView: UIView {
+
+  override func hitTest(_ point: CGPoint, with event: UIEvent?) -> UIView? {
+    let hitView = super.hitTest(point, with: event)
+    if hitView == self {
+      return nil
+    }
+    return hitView
+  }
+
 }
